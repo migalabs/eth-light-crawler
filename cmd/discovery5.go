@@ -28,9 +28,10 @@ func RunDiscv5(ctx *cli.Context) error {
 	// check: https://github.com/migalabs/armiarma/blob/ca3d2f6adea364fc7f38bdabda912b5541bb4154/src/utils/keys.go#L52
 
 	log.WithFields(log.Fields{
-		"peerID": "whatever the peerID is resulting from the Privkey",
-		"IP":     config.DefaultIP,
-		"port":   config.DefaultPort,
+		"peerID":    "whatever the peerID is resulting from the Privkey",
+		"IP":        config.DefaultIP,
+		"port":      config.DefaultPort,
+		"bootnodes": len(config.EthBootonodes),
 	}).Info("Starting discv node")
 
 	// Ethereum node
@@ -38,6 +39,6 @@ func RunDiscv5(ctx *cli.Context) error {
 
 	// Discovery5 service
 	// check: https://github.com/migalabs/armiarma/blob/ca3d2f6adea364fc7f38bdabda912b5541bb4154/src/discovery/dv5/dv5_service.go#L58
-
+	// Bootnodes are in pkg/config/bootnodes
 	return nil
 }
