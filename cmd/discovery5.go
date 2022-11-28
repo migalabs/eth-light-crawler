@@ -1,17 +1,11 @@
 package cmd
-package utils
 
 import (
 	"crypto/ecdsa"
-	"crypto/rand"
-	"encoding/hex"
-	"strings"
-	
-	"github.com/migalabs/eth-light-crawler/pkg/config"
 	"github.com/ethereum/go-ethereum/p2p/enode"
-
-	gcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/migalabs/armiarma/src/enode"
+	"github.com/migalabs/armiarma/src/utils"
+	"github.com/migalabs/eth-light-crawler/pkg/config"
 
 	log "github.com/sirupsen/logrus"
 	cli "github.com/urfave/cli/v2"
@@ -32,10 +26,10 @@ var Discovery5 = &cli.Command{
 }
 
 func RunDiscv5(ctx *cli.Context) error {
+	// all the magic goes here
 	var (
 		nodeKey *ecdsa.PrivateKey
 	)
-	// all the magic goes here
 
 	// Ethereum compatible PrivateKey
 	// check: https://github.com/migalabs/armiarma/blob/ca3d2f6adea364fc7f38bdabda912b5541bb4154/src/utils/keys.go#L52
