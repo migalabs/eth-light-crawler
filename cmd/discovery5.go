@@ -33,7 +33,7 @@ func RunDiscv5(ctx *cli.Context) error {
 
 	// Ethereum compatible PrivateKey
 	// check: https://github.com/migalabs/armiarma/blob/ca3d2f6adea364fc7f38bdabda912b5541bb4154/src/utils/keys.go#L52
-	utils.GeneratePrivKey()
+	nodeKey = utils.GeneratePrivKey()
 
 	log.WithFields(log.Fields{
 		"peerID":    "whatever the peerID is resulting from the Privkey",
