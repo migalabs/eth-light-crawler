@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/libp2p/go-libp2p-kad-dht/crawler"
 	"github.com/migalabs/eth-light-crawler/pkg/config"
+	"github.com/migalabs/eth-light-crawler/pkg/crawler"
 
 	log "github.com/sirupsen/logrus"
 	cli "github.com/urfave/cli/v2"
@@ -19,10 +19,10 @@ var Discovery5 = &cli.Command{
 			EnvVars: []string{"IPFS_CID_HOARDER_LOGLEVEL"},
 			Value:   "info",
 		},
-		&cli.StringFlag{
+		&cli.IntFlag{
 			Name:     "port",
 			Usage:    "port number that we want to use/advertise in the Ethereum network",
-			Value:    "9001",
+			Value:    9001,
 			Required: true,
 		},
 	},
@@ -34,8 +34,11 @@ func RunDiscv5(ctx *cli.Context) error {
 	conf.Apply(ctx)
 
 	// Create a new crawler
-	crawlr := crawler.New()
+	crawlr, err := crawler.New(ctx.Context, conf.DBPath, conf.UDP)
 
+	if err != nil {
+		return err
+	}
 	log.WithFields(log.Fields{
 		"peerID":    "whatever the peerID is resulting from the Privkey",
 		"IP":        conf.IP,
@@ -46,6 +49,5 @@ func RunDiscv5(ctx *cli.Context) error {
 	}).Info("Starting discv node")
 
 	// run the crawler for XX time
-
-	return nil
+	return crawlr.Run(conf.CrawlDuration)
 }
