@@ -12,6 +12,7 @@ type Config struct {
 	TCP           int
 	LogLvl        string
 	DBPath        string
+	DBEndpoint    string
 	CrawlDuration time.Duration
 }
 
@@ -21,6 +22,7 @@ var DefaultConfig Config = Config{
 	TCP:           9001,
 	LogLvl:        "info",
 	DBPath:        "eth_nodes.peerstore",
+	DBEndpoint:    "test-endpoint",
 	CrawlDuration: 1 * time.Hour,
 }
 
@@ -35,5 +37,9 @@ func (c *Config) Apply(ctx *cli.Context) {
 		c.UDP = port
 		c.TCP = port
 	}
+	if ctx.IsSet("db-endpoint") {
+		c.DBEndpoint = ctx.String("db-endpoint")
+	}
 	// more args?
+
 }

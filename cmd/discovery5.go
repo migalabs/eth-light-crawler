@@ -19,6 +19,12 @@ var Discovery5 = &cli.Command{
 			EnvVars: []string{"IPFS_CID_HOARDER_LOGLEVEL"},
 			Value:   "info",
 		},
+		&cli.StringFlag{
+			Name:    "db-endpoint",
+			Usage:   "login endpoint to the database",
+			EnvVars: []string{"IPFS_CID_HOARDER_DB_ENDPOINT"},
+			Value:   "postgres://test:password@localhost:5432/eth_light_crawler",
+		},
 		&cli.IntFlag{
 			Name:     "port",
 			Usage:    "port number that we want to use/advertise in the Ethereum network",
@@ -34,7 +40,7 @@ func RunDiscv5(ctx *cli.Context) error {
 	conf.Apply(ctx)
 
 	// Create a new crawler
-	crawlr, err := crawler.New(ctx.Context, conf.DBPath, conf.UDP)
+	crawlr, err := crawler.New(ctx.Context, conf.DBEndpoint, conf.DBPath, conf.UDP)
 
 	if err != nil {
 		return err
