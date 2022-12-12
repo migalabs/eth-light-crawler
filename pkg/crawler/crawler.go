@@ -2,15 +2,19 @@ package crawler
 
 import (
 	"context"
+	"encoding/hex"
 	"time"
 
-	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/migalabs/armiarma/src/utils"
 	"github.com/migalabs/eth-light-crawler/pkg/config"
 	"github.com/migalabs/eth-light-crawler/pkg/db"
 	"github.com/migalabs/eth-light-crawler/pkg/discv5"
 	ut "github.com/migalabs/eth-light-crawler/pkg/utils"
+
 	"github.com/pkg/errors"
+
+	"github.com/ethereum/go-ethereum/p2p/enode"
+	"github.com/protolambda/zrnt/eth2/beacon/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -31,7 +35,7 @@ type Crawler struct {
 	enrCache map[enode.ID]int64
 }
 
-func New(ctx context.Context, dbEndpoint string, dbPath string, port int) (*Crawler, error) {
+func New(ctx context.Context, dbEndpoint string, dbPath string, port int, resetDB bool) (*Crawler, error) {
 	// Generate a new PrivKey
 	privK, err := ut.GenNewPrivKey()
 	if err != nil {
@@ -45,7 +49,7 @@ func New(ctx context.Context, dbEndpoint string, dbPath string, port int) (*Craw
 	}
 
 	// Create a new
-	sqlDB, err := db.NewDBClient(ctx, dbEndpoint, true)
+	sqlDB, err := db.NewDBClient(ctx, dbEndpoint, true, resetDB)
 	if err != nil {
 		return nil, err
 	}
@@ -72,9 +76,25 @@ func New(ctx context.Context, dbEndpoint string, dbPath string, port int) (*Craw
 		pubkey := node.Pubkey()
 
 		// Retrieve the Fork Digest and the attestnets
-		var eth2Data utils.Eth2ENREntry
-		var attnets utils.AttnetsENREntry
+		eth2Data, ok, err := utils.ParseNodeEth2Data(*node)
+		if !ok {
+			eth2Data = new(common.Eth2Data)
+		} else {
+			if err != nil {
+				log.Error(errors.Wrap(err, "eth2 data parsing error"))
+				// eth2Data = new(common.Eth2Data)
+			}
+		}
 
+		attnets, ok, err := discv5.ParseAttnets(*node)
+		if !ok {
+			attnets = new(discv5.Attnets)
+		} else {
+			if err != nil {
+				log.Error(errors.Wrap(err, "attnets parsing err"))
+				// attnets = new(discv5.Attnets)
+			}
+		}
 		// create a new ENR node
 		enrNode := discv5.NewEnrNode(id)
 
@@ -87,20 +107,34 @@ func New(ctx context.Context, dbEndpoint string, dbPath string, port int) (*Craw
 		enrNode.Eth2Data = eth2Data
 		enrNode.Attnets = attnets
 
-		log.Info("new eth node found", enrNode)
+		log.WithFields(log.Fields{
+			"node_id":     id,
+			"ip":          ip,
+			"udp":         udp,
+			"tcp":         tcp,
+			"pubkey":      pubkey,
+			"fork_digest": eth2Data.ForkDigest,
+			"fork_epoch":  eth2Data.NextForkEpoch,
+			"attnets":     hex.EncodeToString(attnets.Raw[:]),
+			"att_number":  attnets.NetNumber,
+			"enr":         node.String(),
+		}).Info("Eth node found")
 
 		// decide whether we need to insert or update an existing
 		prevSeq, ok := enrCache[enrNode.ID]
 		if !ok { // Insert not previously tracked enr
-			enrCache[enrNode.ID] = enrNode.Seq
-
+			sqlDB.InsertIntoDB(enrNode)
 		} else if enrNode.Seq > prevSeq { // Update the the data of the given Node
-			enrCache[enrNode.ID] = enrNode.Seq
+			sqlDB.UpdateInDB(enrNode)
 		}
+		enrCache[enrNode.ID] = enrNode.Seq
 	}
 
 	// Generate the Discovery5 service
 	discv5Serv, err := discv5.NewService(ctx, port, privK, ethNode, config.EthBootonodes, enrHandler)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to generate the discv5 service")
+	}
 
 	return &Crawler{
 		ctx:           ctx,
@@ -116,4 +150,8 @@ func (c *Crawler) Run(duration time.Duration) error {
 	// otherwise, run it for X time
 
 	return nil
+}
+
+func (c *Crawler) ID() string {
+	return c.ethNode.ID().String()
 }

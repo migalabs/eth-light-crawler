@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -44,7 +43,8 @@ type DBClient struct {
 func NewDBClient(
 	ctx context.Context,
 	loginStr string,
-	initialized bool) (*DBClient, error) {
+	initialized bool,
+	reset bool) (*DBClient, error) {
 
 	logEntry := logrus.WithField("module", "db-client")
 	logEntry.WithFields(logrus.Fields{"endpoint": loginStr}).Debug("attempt connection to DB")
@@ -82,7 +82,7 @@ func NewDBClient(
 
 	// initialize all the tables
 	if initialized {
-		err = dbClient.initTables()
+		err = dbClient.initTables(reset)
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to initialize the SQL tables at "+loginStr)
 		}
@@ -94,12 +94,20 @@ func NewDBClient(
 	return dbClient, nil
 }
 
-func (c *DBClient) initTables() error {
-	// initialize all the necesary tables to perform the crawl
+func (c *DBClient) initTables(resetTables bool) error {
+	// initialize all the necessary tables to perform the crawl
 
 	var err error
 
-	// peer_info table
+	// drop Enr Table if requested
+	if resetTables {
+		err = c.dropEnrTable()
+		if err != nil {
+			return err
+		}
+	}
+
+	// init Enr table
 	err = c.initEnrDatabase()
 	if err != nil {
 		return err
@@ -209,15 +217,11 @@ func newPersistable(item interface{}, action dbAction) *PersistableItem {
 }
 
 func (c *DBClient) InsertIntoDB(persItem interface{}) {
-	fmt.Println("inserting", persItem)
-
 	item := newPersistable(persItem, insertItem)
 	c.persistC <- item
 }
 
 func (c *DBClient) UpdateInDB(persItem interface{}) {
-	fmt.Println("updating", persItem)
-
 	item := newPersistable(persItem, updateItem)
 	c.persistC <- item
 }

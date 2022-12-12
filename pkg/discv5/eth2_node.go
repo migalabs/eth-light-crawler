@@ -20,41 +20,40 @@ type EnrNode struct {
 	UDP       int
 	TCP       int
 	Pubkey    *ecdsa.PublicKey
-	Eth2Data  utils.Eth2ENREntry
-	Attnets   utils.AttnetsENREntry
+	Eth2Data  *common.Eth2Data
+	Attnets   *Attnets
 }
 
 func NewEnrNode(nodeID enode.ID) *EnrNode {
 
 	return &EnrNode{
 		Timestamp: time.Now(),
+		ID:        nodeID,
+		Pubkey:    new(ecdsa.PublicKey),
+		Eth2Data:  new(common.Eth2Data),
+		Attnets:   new(Attnets),
 	}
-}
-
-func (e *EnrNode) ParseEth2Data() (*common.Eth2Data, error) {
-	return e.Eth2Data.Eth2Data()
 }
 
 type Attnets struct {
-	Raw       common.AttnetBits
+	Raw       utils.AttnetsENREntry
 	NetNumber int
 }
 
-func (e *EnrNode) ParseAttnets() (*Attnets, error) {
+func ParseAttnets(node enode.Node) (attnets *Attnets, exists bool, err error) {
+	att := new(Attnets)
+
+	attEntry := new(utils.AttnetsENREntry)
+
+	err = node.Load(attEntry)
+	if err != nil {
+		return att, false, nil
+	}
+	att.Raw = *attEntry
 
 	// count the number of bits in the Attnets
-	bits := CountBits(e.Attnets)
-
-	var attnets common.AttnetBits
-	err := attnets.UnmarshalText(e.Attnets)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Attnets{
-		Raw:       attnets,
-		NetNumber: bits,
-	}, nil
+	att.NetNumber = CountBits(att.Raw[:])
+	return att, true, nil
 }
 
 func CountBits(byteArr []byte) int {

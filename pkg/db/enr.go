@@ -1,14 +1,23 @@
 package db
 
 import (
-	"crypto/x509"
 	"encoding/hex"
-	"fmt"
 
+	gcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/migalabs/eth-light-crawler/pkg/discv5"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
+
+func (d *DBClient) dropEnrTable() error {
+	log.Debugf("droping enrs table in the db")
+
+	_, err := d.psqlPool.Exec(d.ctx, `
+		DROP TABLE enrs;
+	`)
+	return err
+
+}
 
 func (d *DBClient) initEnrDatabase() error {
 	log.Debugf("initializing enrs table in the db")
@@ -27,7 +36,6 @@ func (d *DBClient) initEnrDatabase() error {
 			pubkey TEXT NOT NULL,
 			fork_digest TEXT,
 			next_fork_version TEXT,
-			fork_epoch INT,
 			attnets TEXT, 
 			attnets_number INT,
 
@@ -47,22 +55,13 @@ func (d *DBClient) initEnrDatabase() error {
 func (d *DBClient) InsertEnr(enr *discv5.EnrNode) error {
 	log.Debug("inserting enr in the db")
 
-	eth2Data, err := enr.ParseEth2Data()
-	if err != nil {
-		return errors.New(fmt.Sprintf("unable to parse the Eth2Data for enr %s", enr))
-	}
-	attnets, err := enr.ParseAttnets()
-	if err != nil {
-		return errors.New(fmt.Sprintf("unable to parse the attestation networks for enr %s", enr))
-	}
-
-	pubBytes, _ := x509.MarshalPKIXPublicKey(enr.Pubkey)
+	pubBytes := gcrypto.FromECDSAPub(enr.Pubkey)
 	pubkey := hex.EncodeToString(pubBytes)
 
-	_, err = d.psqlPool.Exec(
+	_, err := d.psqlPool.Exec(
 		d.ctx, `
 			INSERT INTO enrs(
-				timestampt,
+				timestamp,
 				node_id,
 				seq,
 				ip,
@@ -71,10 +70,9 @@ func (d *DBClient) InsertEnr(enr *discv5.EnrNode) error {
 				pubkey,
 				fork_digest,
 				next_fork_version,
-				fork_epoch,
 				attnets,
 				attnets_number)
-			VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)	
+			VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)	
 		`,
 		enr.Timestamp.Unix(),
 		enr.ID.String(),
@@ -83,14 +81,14 @@ func (d *DBClient) InsertEnr(enr *discv5.EnrNode) error {
 		enr.TCP,
 		enr.UDP,
 		pubkey,
-		eth2Data.ForkDigest.String(),
-		eth2Data.NextForkVersion.String(),
-		eth2Data.NextForkEpoch,
-		attnets.Raw.String(),
-		attnets.NetNumber,
+		enr.Eth2Data.ForkDigest.String(),
+		enr.Eth2Data.NextForkVersion.String(),
+		hex.EncodeToString(enr.Attnets.Raw[:]),
+		enr.Attnets.NetNumber,
 	)
 	if err != nil {
-		return err
+		log.Error(enr)
+		return errors.Wrap(err, "unable to insert enr")
 	}
 
 	return nil
@@ -101,21 +99,13 @@ func (d *DBClient) InsertEnr(enr *discv5.EnrNode) error {
 func (d *DBClient) UpdateEnr(enr *discv5.EnrNode) error {
 	log.Debug("inserting enr in the db")
 
-	eth2Data, err := enr.ParseEth2Data()
-	if err != nil {
-		return errors.New(fmt.Sprintf("unable to parse the Eth2Data for enr", enr))
-	}
-	attnets, err := enr.ParseAttnets()
-	if err != nil {
-		return errors.New(fmt.Sprintf("unable to parse the attestation networks for enr", enr))
-	}
-	pubBytes, _ := x509.MarshalPKIXPublicKey(enr.Pubkey)
+	pubBytes := gcrypto.FromECDSAPub(enr.Pubkey)
 	pubkey := hex.EncodeToString(pubBytes)
 
-	_, err = d.psqlPool.Exec(
+	_, err := d.psqlPool.Exec(
 		d.ctx, `
 			UPDATE enrs SET(
-				timestampt=$2,
+				timestamp=$2,
 				seq=$3,
 				ip=$4,
 				tcp=$5,
@@ -123,9 +113,8 @@ func (d *DBClient) UpdateEnr(enr *discv5.EnrNode) error {
 				pubkey=$7,
 				fork_digest=$8,
 				next_fork_version=$9,
-				fork_epoch=$10,
-				attnets=$11,
-				attnets_number=$12)
+				attnets=$10,
+				attnets_number=$11)
 			WHERE node_id=$1 and seq < $3	
 		`,
 		enr.ID.String(),
@@ -135,14 +124,14 @@ func (d *DBClient) UpdateEnr(enr *discv5.EnrNode) error {
 		enr.TCP,
 		enr.UDP,
 		pubkey,
-		eth2Data.ForkDigest.String(),
-		eth2Data.NextForkVersion.String(),
-		eth2Data.NextForkEpoch,
-		attnets.Raw.String(),
-		attnets.NetNumber,
+		enr.Eth2Data.ForkDigest.String(),
+		enr.Eth2Data.NextForkVersion.String(),
+		hex.EncodeToString(enr.Attnets.Raw[:]),
+		enr.Attnets.NetNumber,
 	)
 	if err != nil {
-		return err
+		log.Error(enr)
+		return errors.Wrap(err, "unable to update enr")
 	}
 	return nil
 }
