@@ -104,7 +104,7 @@ func (d *DBClient) UpdateEnr(enr *discv5.EnrNode) error {
 
 	_, err := d.psqlPool.Exec(
 		d.ctx, `
-			UPDATE enrs SET(
+			UPDATE enrs SET
 				timestamp=$2,
 				seq=$3,
 				ip=$4,
@@ -114,7 +114,7 @@ func (d *DBClient) UpdateEnr(enr *discv5.EnrNode) error {
 				fork_digest=$8,
 				next_fork_version=$9,
 				attnets=$10,
-				attnets_number=$11)
+				attnets_number=$11
 			WHERE node_id=$1 and seq < $3	
 		`,
 		enr.ID.String(),
