@@ -1,14 +1,16 @@
 package cmd
 
 import (
+	"crypto/ecdsa"
+	"crypto/rand"
+	"encoding/hex"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/migalabs/armiarma/src/utils"
 	"github.com/migalabs/eth-light-crawler/pkg/config"
-	"net"
-
 	log "github.com/sirupsen/logrus"
 	cli "github.com/urfave/cli/v2"
+	"net"
 )
 
 var Discovery5 = &cli.Command{
@@ -24,6 +26,10 @@ var Discovery5 = &cli.Command{
 		},
 	},
 }
+
+var (
+	nodeKey *ecdsa.PrivateKey
+)
 
 type Eth2InfoData struct {
 	IP            net.IP
@@ -41,14 +47,46 @@ type Eth2InfoData struct {
 	OutputPath    string
 }
 
+func GeneratePrivKey() string {
+
+	key, err := ecdsa.GenerateKey(gcrypto.S256(), rand.Reader)
+
+	if err != nil {
+		log.Panicf("failed to generate key: %v", err)
+	}
+
+	secpKey := (*crypto.Secp256k1PrivateKey)(key)
+
+	keyBytes, err := secpKey.Raw()
+
+	if err != nil {
+		log.Panicf("failed to serialize key: %v", err)
+	}
+	return hex.EncodeToString(keyBytes)
+}
+
+func (i *Eth2InfoData) SetPrivKeyFromString(input_key string) error {
+	parsed_key, err := utils.ParsePrivateKey(input_key)
+
+	if err != nil {
+		error_string := "Could not parse Private Key"
+		return errors.New(error_string)
+	}
+	i.PrivateKey = parsed_key
+	return nil
+}
+
+func GenNewPrivKey() (*ecdsa.PrivateKey, error) {
+	return ecdsa.GenerateKey(gcrypto.S256(), rand.Reader)
+}
+
 func RunDiscv5(ctx *cli.Context) error {
 	// all the magic goes here
-
 	// Ethereum compatible PrivateKey
 	// check: https://github.com/migalabs/armiarma/blob/ca3d2f6adea364fc7f38bdabda912b5541bb4154/src/utils/keys.go#L52
-	i := Eth2InfoData{}
+	// i := Eth2InfoData{}
 	// Private Key
-	i.PrivateKey = utils.GeneratePrivKey()
+	nodeKey, _ := GenNewPrivKey()
 
 	log.WithFields(log.Fields{
 		"peerID":    "whatever the peerID is resulting from the Privkey",
