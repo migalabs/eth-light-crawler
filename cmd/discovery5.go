@@ -56,13 +56,6 @@ func RunDiscv5(ctx *cli.Context) error {
 
 	// Ethereum node
 	// check: https://github.com/ethereum/go-ethereum/blob/c2e0abce2eedc1ba2a1b32c46fd07ef18a25354a/p2p/enode/localnode.go#L70
-	// db, _ := enode.OpenDB("")
-	// ln := enode.NewLocalNode(db, nodeKey)
-	//ln_eth := &LocalNode{
-	//	ctx:       ctx.Context,
-	//	LocalNode: *enode.NewLocalNode(db, nodeKey),
-	//	info_data: infObj,
-	//}
 	infObj, _ := info.InitEth2(ctx)
 	ln_eth := enode.NewLocalNode(ctx.Context, &infObj, nodeKey)
 	// Discovery5 service
