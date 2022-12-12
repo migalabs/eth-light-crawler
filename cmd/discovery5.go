@@ -20,16 +20,21 @@ var Discovery5 = &cli.Command{
 			Value:   "info",
 		},
 		&cli.StringFlag{
-			Name:    "db-endpoint",
-			Usage:   "login endpoint to the database",
-			EnvVars: []string{"IPFS_CID_HOARDER_DB_ENDPOINT"},
-			Value:   "postgres://test:password@localhost:5432/eth_light_crawler",
+			Name:     "db-endpoint",
+			Usage:    "login endpoint to the database",
+			EnvVars:  []string{"IPFS_CID_HOARDER_DB_ENDPOINT"},
+			Value:    "postgres://test:password@localhost:5432/eth_light_crawler",
+			Required: true,
 		},
 		&cli.IntFlag{
-			Name:     "port",
-			Usage:    "port number that we want to use/advertise in the Ethereum network",
-			Value:    9001,
-			Required: true,
+			Name:  "port",
+			Usage: "port number that we want to use/advertise in the Ethereum network",
+			Value: 9001,
+		},
+		&cli.BoolFlag{
+			Name:  "reset-db",
+			Usage: "reset the content of the db tables",
+			Value: false,
 		},
 	},
 }
@@ -40,13 +45,13 @@ func RunDiscv5(ctx *cli.Context) error {
 	conf.Apply(ctx)
 
 	// Create a new crawler
-	crawlr, err := crawler.New(ctx.Context, conf.DBEndpoint, conf.DBPath, conf.UDP)
+	crawlr, err := crawler.New(ctx.Context, conf.DBEndpoint, conf.DBPath, conf.UDP, conf.ResetDB)
 
 	if err != nil {
 		return err
 	}
 	log.WithFields(log.Fields{
-		"peerID":    "whatever the peerID is resulting from the Privkey",
+		"peerID":    crawlr.ID(),
 		"IP":        conf.IP,
 		"UDP":       conf.UDP,
 		"TCP":       conf.TCP,

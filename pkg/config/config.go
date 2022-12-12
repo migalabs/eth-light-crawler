@@ -13,6 +13,7 @@ type Config struct {
 	LogLvl        string
 	DBPath        string
 	DBEndpoint    string
+	ResetDB       bool
 	CrawlDuration time.Duration
 }
 
@@ -23,6 +24,7 @@ var DefaultConfig Config = Config{
 	LogLvl:        "info",
 	DBPath:        "eth_nodes.peerstore",
 	DBEndpoint:    "test-endpoint",
+	ResetDB:       false,
 	CrawlDuration: 1 * time.Hour,
 }
 
@@ -40,6 +42,8 @@ func (c *Config) Apply(ctx *cli.Context) {
 	if ctx.IsSet("db-endpoint") {
 		c.DBEndpoint = ctx.String("db-endpoint")
 	}
+	if ctx.IsSet("reset-db") {
+		c.ResetDB = ctx.Bool("reset-db")
+	}
 	// more args?
-
 }
