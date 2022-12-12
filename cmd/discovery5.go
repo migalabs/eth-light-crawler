@@ -62,13 +62,12 @@ func RunDiscv5(ctx *cli.Context) error {
 	// Discovery5 service
 	// check: https://github.com/migalabs/armiarma/blob/ca3d2f6adea364fc7f38bdabda912b5541bb4154/src/discovery/dv5/dv5_service.go#L58
 	// Bootnodes are in pkg/config/bootnodes
-	c := ctx.Context
-	infObj, _ := info.InitEth2(c)
+	infObj, _ := info.InitEth2(ctx)
 	dv5, _ := dv5.NewDiscovery(
 		ctx.Context,
 		ln, // LocalNode?
 		nodeKey,
-		Bootonodes, // pkg/config/bootnodes?
+		config.EthBootonodes, // pkg/config/bootnodes?
 		infObj.ForkDigest,
 		9006)
 
