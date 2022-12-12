@@ -4,8 +4,8 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/rand"
-	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/migalabs/armiarma/src/discovery/dv5"
+	"github.com/migalabs/armiarma/src/enode"
 	"github.com/migalabs/armiarma/src/info"
 	"github.com/migalabs/eth-light-crawler/pkg/config"
 	log "github.com/sirupsen/logrus"
@@ -56,18 +56,24 @@ func RunDiscv5(ctx *cli.Context) error {
 
 	// Ethereum node
 	// check: https://github.com/ethereum/go-ethereum/blob/c2e0abce2eedc1ba2a1b32c46fd07ef18a25354a/p2p/enode/localnode.go#L70
-	db, _ := enode.OpenDB("")
-	ln := enode.NewLocalNode(db, nodeKey)
-
+	// db, _ := enode.OpenDB("")
+	// ln := enode.NewLocalNode(db, nodeKey)
+	//ln_eth := &LocalNode{
+	//	ctx:       ctx.Context,
+	//	LocalNode: *enode.NewLocalNode(db, nodeKey),
+	//	info_data: infObj,
+	//}
+	infObj, _ := info.InitEth2(ctx)
+	ln_eth := enode.NewLocalNode(ctx.Context, &infObj, nodeKey)
 	// Discovery5 service
 	// check: https://github.com/migalabs/armiarma/blob/ca3d2f6adea364fc7f38bdabda912b5541bb4154/src/discovery/dv5/dv5_service.go#L58
 	// Bootnodes are in pkg/config/bootnodes
-	infObj, _ := info.InitEth2(ctx)
+
 	dv5, _ := dv5.NewDiscovery(
 		ctx.Context,
-		ln, // LocalNode?
+		ln_eth,
 		nodeKey,
-		config.EthBootonodes, // pkg/config/bootnodes?
+		config.EthBootonodes,
 		infObj.ForkDigest,
 		9006)
 
