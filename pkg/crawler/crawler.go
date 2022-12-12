@@ -112,7 +112,6 @@ func New(ctx context.Context, dbEndpoint string, dbPath string, port int, resetD
 			"ip":          ip,
 			"udp":         udp,
 			"tcp":         tcp,
-			"pubkey":      pubkey,
 			"fork_digest": eth2Data.ForkDigest,
 			"fork_epoch":  eth2Data.NextForkEpoch,
 			"attnets":     hex.EncodeToString(attnets.Raw[:]),
