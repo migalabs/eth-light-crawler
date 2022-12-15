@@ -115,7 +115,7 @@ func (d *DBClient) UpdateEnr(enr *discv5.EnrNode) error {
 				next_fork_version=$9,
 				attnets=$10,
 				attnets_number=$11
-			WHERE node_id=$1 and seq < $3	
+			WHERE node_id=$1
 		`,
 		enr.ID.String(),
 		enr.Timestamp.Unix(),
